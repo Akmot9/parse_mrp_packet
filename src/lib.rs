@@ -143,43 +143,37 @@ pub fn parse_u32(data: &[u8]) -> u32 {
     u32::from_be_bytes([data[0], data[1], data[2], data[3]])
 }
 
-pub fn parse_mrp_data(data: &[u8]) -> Result<MRPData, &'static str> {
-    //println!("Parsing MRP Data {:02X?} bytes", data);
-    //println!("data length: {}", data.len());
+pub fn parse_mrp_data(data: &[u8]) -> Option<MRPData> {
     if data.len() < 2 {
-        //print!("data too short, length: {}", data.len());
-        return Err("Insufficient data for version");
+        //print(!("Insufficient data for version");
+        return None;
     }
 
     let version = parse_u16(&data[0..2]);
-    //println!("Parsed version: {:#06x}", version);
+    //print(!("Parsed version: {:#06x}", version);
     let mut offset = 2;
-    //println!("Offset: {}", offset);
     let mut tlv_headers = Vec::new();
-    //println!("TLV Headers: {}", tlv_headers.len());
 
     while offset < data.len() {
-        //println!("Parsing TLV Header at offset {}", offset);
         if offset + 2 > data.len() {
-            //println!("check offset {}", offset + 2);
-            return Err("Insufficient data for TLV header");
+            //print(!("Insufficient data for TLV header");
+            return None;
         }
 
         let tlv_type = data[offset];
-        //println!("TLV Type: {:#04x}", tlv_type);
         let length = data[offset + 1] as usize;
-        //println!("TLV Length: {}", length);
 
         if offset + 2 + length > data.len() {
-            return Err("Insufficient data for TLV value");
+            //print(!("Insufficient data for TLV value");
+            return None;
         }
 
         let tlv_data = &data[offset + 2..offset + 2 + length];
-        //println!("Parsing TLV type: {:#04x}, length: {}", tlv_type, length);
+        //print(!("Parsing TLV type: {:#04x}, length: {}", tlv_type, length);
 
         let tlv_header = match tlv_type {
             0x02 => {
-                //println!("Parsing MRPTest TLV");
+                //print(!("Parsing MRPTest TLV");
                 MRPTLVHeader {
                     tlv_type,
                     length: length as u8,
@@ -194,18 +188,18 @@ pub fn parse_mrp_data(data: &[u8]) -> Result<MRPData, &'static str> {
                 }
             }
             0x01 => {
-                //println!("Parsing MRPCommon TLV");
+                //print(!("Parsing MRPCommon TLV");
                 MRPTLVHeader {
                     tlv_type,
                     length: length as u8,
                     data: MRPTLVData::MRPCommon(MRPCommonData {
                         sequence_id: parse_u16(&tlv_data[0..2]),
-                        domain_uuid: Uuid::from_slice(&tlv_data[2..18]).map_err(|_| "Failed to parse UUID")?,
+                        domain_uuid: Uuid::from_slice(&tlv_data[2..18]).ok()?,
                     }),
                 }
             }
             0x7f => {
-                //println!("Parsing MRPOption TLV");
+                //print(!("Parsing MRPOption TLV");
                 MRPTLVHeader {
                     tlv_type,
                     length: length as u8,
@@ -217,23 +211,26 @@ pub fn parse_mrp_data(data: &[u8]) -> Result<MRPData, &'static str> {
                 }
             }
             0x00 => {
-                //println!("Parsing MRPEnd TLV");
+                //print(!("Parsing MRPEnd TLV");
                 MRPTLVHeader {
                     tlv_type,
                     length: 0,
                     data: MRPTLVData::MRPEnd,
                 }
             }
-            _ => return Err("Unknown TLV type"),
+            _ => {
+                //print(!("Unknown TLV type");
+                return None;
+            }
         };
         tlv_headers.push(tlv_header);
         offset += 2 + length;
-        //println!("Offset updated to: {}", offset);
+        //print(!("Offset updated to: {}", offset);
     }
 
-    //println!("Parsed MRPData with {} TLV headers", tlv_headers.len());
+    //print(!("Parsed MRPData with {} TLV headers", tlv_headers.len());
 
-    Ok(MRPData {
+    Some(MRPData {
         version,
         tlv_headers,
     })
@@ -275,7 +272,7 @@ mod tests {
         ];
 
         let mrp_data = parse_mrp_data(&payload).expect("Failed to parse MRP data");
-        //println!("{}", mrp_data);
+        //print(!("{}", mrp_data);
         
         // Assertions pour vérifier que les données sont correctes
         assert_eq!(mrp_data.version, 0x0001);
